@@ -15,23 +15,42 @@ public class Main {
 
     public static void main(String[] args) {
         for(int i=0; i<args.length; i++){
+            Path given = new File(args[i]).toPath();
             System.out.println(args[i]);
-            Path currentDirectory = Paths.get("");
-            String dPath = ".tempfolder_"+i;
-            String zPath = args[i];
-            System.out.println(dPath + "\n" + zPath);
-            String content = "";
-            Collection<Path> contentList = shortUnzip(zPath,dPath);
-            for(Iterator<Path> j = contentList.iterator(); j.hasNext();){
-                content = j.next().toString();
-            }
-            readFile(content);
-            zip(dPath, zPath.substring(0,zPath.length()-5) + "_rtl" + ".epub");
 
-            FileSystemUtils.deleteRecursively(new File(dPath));
+            if(Files.isDirectory(given)){
+                try(Stream<Path> paths = Files.walk(Paths.get(args[i]))){
+                    paths.map(path -> path.toString()).filter(f -> f.endsWith(".epub"))
+                            .forEach(fileName -> {
+                                mainLoop(fileName,".tempfolder");
+                            });
+                } catch(Exception e){
+                    System.err.println(e);
+                }
+            }
+            else{
+                mainLoop(given.toString(),".tempfolder");
+            }
         }
     }
+    private static void mainLoop(String fileName, String pathName){
+        Path currentDirectory = Paths.get("");
 
+        String dPath = pathName;
+        String zPath = fileName;
+
+        String content = "";
+        Collection<Path> contentList = shortUnzip(zPath,dPath);
+        for(Iterator<Path> j = contentList.iterator(); j.hasNext();){
+            content = j.next().toString();
+        }
+        
+        readFile(content);
+
+        zip(dPath, zPath.substring(0,zPath.length()-5) + "_rtl" + ".epub");
+
+        FileSystemUtils.deleteRecursively(new File(dPath));
+    }
     private static void readFile(String dPath){
         try{
             File file = new File(dPath);
