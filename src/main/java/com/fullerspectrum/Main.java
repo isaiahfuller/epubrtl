@@ -1,13 +1,8 @@
 package com.fullerspectrum;
 
-import org.springframework.util.FileSystemUtils;
-import org.zeroturnaround.zip.ZipUtil;
-
 import java.io.*;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Scanner;
 import java.util.stream.*;
 import java.nio.file.*;
 
@@ -22,83 +17,61 @@ public class Main {
                 try(Stream<Path> paths = Files.walk(Paths.get(args[i]))){
                     paths.map(path -> path.toString()).filter(f -> f.endsWith(".epub"))
                             .forEach(fileName -> {
-                                mainLoop(fileName,".tempfolder");
+                                modifyTextFileInZip(fileName);
                             });
                 } catch(Exception e){
                     System.err.println(e);
                 }
             }
             else{
-                mainLoop(given.toString(),".tempfolder");
+                modifyTextFileInZip(given.toString());
             }
         }
     }
-    private static void mainLoop(String fileName, String pathName){
-        Path currentDirectory = Paths.get("");
 
-        String dPath = pathName;
-        String zPath = fileName;
-
-        String content = "";
-        Collection<Path> contentList = shortUnzip(zPath,dPath);
-        for(Iterator<Path> j = contentList.iterator(); j.hasNext();){
-            content = j.next().toString();
-        }
-        
-        readFile(content);
-
-        zip(dPath, zPath.substring(0,zPath.length()-5) + "_rtl" + ".epub");
-
-        FileSystemUtils.deleteRecursively(new File(dPath));
-    }
-    private static void readFile(String dPath){
-        try{
-            File file = new File(dPath);
-            Scanner sc = new Scanner(file);
-            String content = "";
-            while(sc.hasNextLine()){
-                String temp = sc.nextLine();
-                if(temp.contains("<spine")){
-                    if(temp.contains("page-progression-direction=\"rtl\"")){
-                        System.out.println("Already set rtl");
-                    }else{
-                        temp = temp.substring(0,temp.length() - 1) + " page-progression-direction=\"rtl\">";
-                    }
-                }
-                content += temp + "\n";
+    static void modifyTextFileInZip(String zipPath) {
+        Path zipFilePath = Paths.get(zipPath);
+        try (FileSystem fs = FileSystems.newFileSystem(zipFilePath, null)) {
+            Collection<Path> files = zipFilter(fs);
+            //Path source = fs.getPath("/abc.txt");
+            Path source = zipFilePath;
+            for(Iterator<Path> j = files.iterator(); j.hasNext();){
+                source = j.next();
             }
-            sc.close();
-            FileWriter fw = new FileWriter(file);
-            PrintWriter pw = new PrintWriter(fw);
-            pw.write(content);
-            pw.close();
-        } catch(FileNotFoundException e){
-            readFile(dPath);
-        } catch(IOException e){
-            System.err.println(e);
-        }
-    }
-    private static Collection<Path> shortUnzip(String zipFilePath, String destDir){
-        new File(destDir).mkdirs();
-        Path path = FileSystems.getDefault().getPath(destDir);
-        ArrayList<Path> r = new ArrayList<Path>();
-        r.add(path);
-        try{
-            Files.setAttribute(path, "dos:hidden",true);
-        } catch(Exception e){
-            System.err.println(e);
-        }
-        ZipUtil.unpack(new File(zipFilePath), new File(destDir));
-        try (Stream<Path> files = Files.walk(Paths.get(destDir))){
-            return files
-                    .filter(f -> f.getFileName().toString().equals("content.opf"))
-                    .collect(Collectors.toList());
+            Path temp = fs.getPath("/content.opf.tmp");
+            if (Files.exists(temp)) {
+                throw new IOException("temp file exists, generate another name");
+            }
+            Files.move(source, temp);
+            streamCopy(temp, source);
+            Files.delete(temp);
         }catch(Exception e){
-            System.err.println(e);
+            e.printStackTrace();
         }
-        return r;
     }
-    private static void zip(String sourceDirPath, String zipFilePath){
-        ZipUtil.pack(new File(sourceDirPath), new File(zipFilePath));
+
+    private static Collection<Path> zipFilter(FileSystem fs) throws IOException{
+        Stream<Path> files = Files.walk(fs.getPath("/"));
+        return files
+                .filter(f -> f.getFileName() != null)
+                .filter(f -> f.getFileName().toString().equals("content.opf"))
+                .collect(Collectors.toList());
+
+    }
+
+    static void streamCopy(Path src, Path dst) throws IOException {
+        try (BufferedReader br = new BufferedReader(
+                new InputStreamReader(Files.newInputStream(src)));
+             BufferedWriter bw = new BufferedWriter(
+                     new OutputStreamWriter(Files.newOutputStream(dst)))) {
+
+            String line;
+            while ((line = br.readLine()) != null) {
+                if(!line.contains("page-progression-direction=\"rtl\""))
+                    line = line.replace("<spine", "<spine page-progression-direction=\"rtl\" ");
+                bw.write(line);
+                bw.newLine();
+            }
+        }
     }
 }
