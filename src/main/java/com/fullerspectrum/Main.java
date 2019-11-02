@@ -1,10 +1,14 @@
 package com.fullerspectrum;
 
+import org.springframework.util.FileSystemUtils;
 import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Scanner;
-import java.util.zip.*;
+import java.util.stream.*;
 import java.nio.file.*;
 
 public class Main {
@@ -12,69 +16,25 @@ public class Main {
     public static void main(String[] args) {
         for(int i=0; i<args.length; i++){
             System.out.println(args[i]);
-        }
-        Path currentDirectory = Paths.get("");
-        String dPath = "tempfolder";
-        //String zPath = "vol1.epub"; // TEMP, replace with arg
-        String zPath = args[0];
-        System.out.println(dPath + "\n" + zPath);
-
-        //unzip(zPath, dPath);
-
-        shortUnzip(zPath,dPath);
-        readFile();
-        zip(dPath, zPath.substring(0,zPath.length()-5) + "_rtl" + ".epub");
-    }
-
-    //This is now completely unnecessary
-    private static void unzip(String zipFilePath, String destDir) {
-        File dir = new File(destDir);
-        // create output directory if it doesn't exist
-        if(!dir.exists()) dir.mkdirs();
-        FileInputStream fis;
-        //buffer for read and write data to file
-        byte[] buffer = new byte[1024];
-        try {
-            fis = new FileInputStream(zipFilePath);
-            ZipInputStream zis = new ZipInputStream(fis);
-            ZipEntry ze = zis.getNextEntry();
-            while(ze != null){
-                String fileName = ze.getName();
-                File destinationDir = new File("tempfolder");
-                if(ze.isDirectory()){
-                    Files.createDirectories(Paths.get(destDir + File.separator + ze.getName()));
-                }else{
-                    String canonicalDestinationDirPath = destinationDir.getCanonicalPath();
-                    File newFile = new File(destDir + File.separator + fileName);
-                    String canonicalDestinationFile = newFile.getCanonicalPath();
-                    if(!canonicalDestinationFile .startsWith(canonicalDestinationDirPath + File.separator))
-                        throw new IOException("Entry is outside of the target dir: " + ze.getName());
-                    System.out.println("Unzipping to " + newFile.getAbsolutePath());
-                    //create directories for sub directories in zip
-                    new File(newFile.getParent()).mkdirs();
-                    FileOutputStream fos = new FileOutputStream(newFile);
-                    int len;
-                    while ((len = zis.read(buffer)) > 0) {
-                        fos.write(buffer, 0, len);
-                    }
-                    fos.close();
-                }
-                //close this ZipEntry
-                zis.closeEntry();
-                ze = zis.getNextEntry();
+            Path currentDirectory = Paths.get("");
+            String dPath = ".tempfolder_"+i;
+            String zPath = args[i];
+            System.out.println(dPath + "\n" + zPath);
+            String content = "";
+            Collection<Path> contentList = shortUnzip(zPath,dPath);
+            for(Iterator<Path> j = contentList.iterator(); j.hasNext();){
+                content = j.next().toString();
             }
-            //close last ZipEntry
-            zis.closeEntry();
-            zis.close();
-            fis.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            readFile(content);
+            zip(dPath, zPath.substring(0,zPath.length()-5) + "_rtl" + ".epub");
 
+            FileSystemUtils.deleteRecursively(new File(dPath));
+        }
     }
-    private static void readFile(){
+
+    private static void readFile(String dPath){
         try{
-            File file = new File("tempfolder" + File.separator + "content.opf");
+            File file = new File(dPath);
             Scanner sc = new Scanner(file);
             String content = "";
             while(sc.hasNextLine()){
@@ -93,12 +53,31 @@ public class Main {
             PrintWriter pw = new PrintWriter(fw);
             pw.write(content);
             pw.close();
-        } catch(Exception e){
+        } catch(FileNotFoundException e){
+            readFile(dPath);
+        } catch(IOException e){
             System.err.println(e);
         }
     }
-    private static void shortUnzip(String zipFilePath, String destDir){
+    private static Collection<Path> shortUnzip(String zipFilePath, String destDir){
+        new File(destDir).mkdirs();
+        Path path = FileSystems.getDefault().getPath(destDir);
+        ArrayList<Path> r = new ArrayList<Path>();
+        r.add(path);
+        try{
+            Files.setAttribute(path, "dos:hidden",true);
+        } catch(Exception e){
+            System.err.println(e);
+        }
         ZipUtil.unpack(new File(zipFilePath), new File(destDir));
+        try (Stream<Path> files = Files.walk(Paths.get(destDir))){
+            return files
+                    .filter(f -> f.getFileName().toString().equals("content.opf"))
+                    .collect(Collectors.toList());
+        }catch(Exception e){
+            System.err.println(e);
+        }
+        return r;
     }
     private static void zip(String sourceDirPath, String zipFilePath){
         ZipUtil.pack(new File(sourceDirPath), new File(zipFilePath));
