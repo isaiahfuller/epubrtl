@@ -6,12 +6,7 @@
     </artifacts-to-build>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="035767bf-2ba5-4caf-a3fa-1859d24e68b2" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/epubrtl.iml" beforeDir="false" afterPath="$PROJECT_DIR$/epubrtl.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/fullerspectrum/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/fullerspectrum/Main.java" afterDir="false" />
-    </list>
+    <list default="true" id="035767bf-2ba5-4caf-a3fa-1859d24e68b2" name="Default Changelist" comment="" />
     <ignored path="$PROJECT_DIR$/out/" />
     <ignored path="$PROJECT_DIR$/target/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -200,7 +195,6 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="138" y="126" width="1233" height="839" extended-state="0" />
-    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.47144076" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
@@ -211,7 +205,7 @@
       <window_info id="Favorites" order="6" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" visible="true" weight="0.40509915" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.40509915" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.39869988" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
